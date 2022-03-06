@@ -40,9 +40,10 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
   cloud_init = true
   cloud_init_storage_pool = "${var.proxmox_storage_pool}"
 
-  memory     = 2048
-  cores      = 1
+  memory     = 4096
+  cores      = 2
   sockets    = 1
+  scsi_controller = "virtio-scsi-pci"
   os         = "l26"
   qemu_agent = true
 
