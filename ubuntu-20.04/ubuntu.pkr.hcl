@@ -70,6 +70,7 @@ build {
     source = "files/99_pve.cfg.txt"
     destination = "/tmp/99_pve.cfg"
   }
+
   # wait for cloud-init to finish, copy above file to /etc/cloud/cloud.cfg.d
   # prepare the vm for being a template as per https://www.learnlinux.tv/proxmox-ve-full-course-class-6-creating-virtual-machine-templates/
   provisioner "shell" {
