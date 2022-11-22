@@ -41,7 +41,7 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
   cloud_init = true
   cloud_init_storage_pool = "${var.proxmox_storage_pool}"
 
-  memory     = 4096
+  memory     = 8192
   cores      = 2
   sockets    = 1
   scsi_controller = "virtio-scsi-pci"
@@ -50,7 +50,7 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
 
   disks {
     type              = "scsi"
-    disk_size         = "10G"
+    disk_size         = "20G"
     storage_pool      = "${var.proxmox_storage_pool}"
     storage_pool_type = "lvm"
     format            = "raw"
@@ -81,8 +81,12 @@ build {
       "sudo mv /tmp/99_pve.cfg /etc/cloud/cloud.cfg.d/99_pve.cfg",
       "echo removing host keys",
       "sudo rm /etc/ssh/ssh_host_*",
-      "echo machine id",
+      "echo zeroing the machine id",
       "sudo truncate -s 0 /etc/machine-id",
+      "echo removing the other machine-id",
+      "sudo rm /var/lib/dbus/machine-id",
+      "echo creating symlink",
+      "sudo ln -s /etc/machine-id /var/lib/dbus/machine-id",
       "echo apt clean",
       "sudo apt clean",
       "echo removing packages",
