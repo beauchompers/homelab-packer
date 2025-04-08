@@ -1,13 +1,17 @@
 packer {
   required_plugins {
     proxmox = {
-      version = " >= 1.0.1"
+      version = "~>1"
       source  = "github.com/hashicorp/proxmox"
+    }
+    qemu = {
+      version = "=1.0.1"
+      source  = "github.com/hashicorp/qemu"
     }
   }
 }
 
-source "proxmox-iso" "proxmox-ubuntu-20" {
+source "proxmox-proxmox-iso" "proxmox-ubuntu-20" {
   proxmox_url = "https://${var.proxmox_host}:8006/api2/json"
   vm_name     = "${var.proxmox_template_name}"
   vm_id       = "${var.proxmox_vm_id}"
@@ -28,7 +32,7 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
   boot_command = [
       "c",
       "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/' ",
-      "<enter><wait>",
+      "<enter><wait><wait><wait><wait>",
       "initrd /casper/initrd<enter><wait>",
       "boot<enter>"
     ]
@@ -36,7 +40,7 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
 
   template_name        = "${var.proxmox_template_name}"
   template_description = "${var.proxmox_template_description}"
-  unmount_iso          = true
+  unmount_iso          = false
 
   cloud_init = true
   cloud_init_storage_pool = "${var.proxmox_storage_pool}"
@@ -59,12 +63,12 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
   network_adapters {
     bridge   = "vmbr0"
     model    = "virtio"
-    firewall = true
+    firewall = false
   }
 }
 
 build {
-  sources = ["source.proxmox-iso.proxmox-ubuntu-20"]
+  sources = ["source.proxmox-proxmox-iso.proxmox-ubuntu-20"]
   # copy the 99_pve.cfg file to /tmp, to be added to /etc/cloud/cloud.cfg.d/99_pve.cfg
   # as per - https://pve.proxmox.com/wiki/Cloud-Init_FAQ#Creating_a_custom_cloud_image
   provisioner "file" {
