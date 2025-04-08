@@ -11,7 +11,7 @@ packer {
   }
 }
 
-source "proxmox-proxmox-iso" "proxmox-ubuntu-20" {
+source "proxmox-iso" "proxmox-ubuntu-20" {
   proxmox_url = "https://${var.proxmox_host}:8006/api2/json"
   vm_name     = "${var.proxmox_template_name}"
   vm_id       = "${var.proxmox_vm_id}"
@@ -68,7 +68,7 @@ source "proxmox-proxmox-iso" "proxmox-ubuntu-20" {
 }
 
 build {
-  sources = ["source.proxmox-proxmox-iso.proxmox-ubuntu-20"]
+  sources = ["source.proxmox-iso.proxmox-ubuntu-20"]
   # copy the 99_pve.cfg file to /tmp, to be added to /etc/cloud/cloud.cfg.d/99_pve.cfg
   # as per - https://pve.proxmox.com/wiki/Cloud-Init_FAQ#Creating_a_custom_cloud_image
   provisioner "file" {
