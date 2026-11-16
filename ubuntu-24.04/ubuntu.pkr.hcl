@@ -53,7 +53,7 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
 
   template_name        = local.template_name
   template_description = local.template_description
-  unmount_iso          = false
+  unmount_iso          = true
 
   cloud_init = true
   cloud_init_storage_pool = "${var.proxmox_storage_pool}"
