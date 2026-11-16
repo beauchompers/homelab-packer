@@ -130,6 +130,13 @@ build {
     ])
   }
 
+  # the org id and activation key go in a file so the leak check below can grep for them without putting
+  # them on a sudo command line, which /var/log/secure would record
+  provisioner "file" {
+    content     = "${var.rhsm_org}\n${var.rhsm_activation_key}\n"
+    destination = "/tmp/rhsm-patterns"
+  }
+
   # unregister so clones don't share one red hat identity, remove everything that holds the org id or
   # activation key, then prepare the vm for being a template
   provisioner "shell" {
@@ -141,7 +148,8 @@ build {
       "echo removing kickstart copies and install logs",
       "sudo rm -rf /root/anaconda-ks.cfg /root/original-ks.cfg /var/log/anaconda /var/log/rhsm/*",
       "sudo journalctl --rotate && sudo journalctl --vacuum-time=1s",
-      "! sudo grep -rIlq -e '${var.rhsm_org}' -e '${var.rhsm_activation_key}' /root /etc /var/log",
+      "! sudo grep -rIlqFf /tmp/rhsm-patterns /root /etc /var/log",
+      "rm -f /tmp/rhsm-patterns",
       "echo moving files",
       # install + restorecon, as mv from /tmp keeps its tmp_t selinux label and cloud-init couldn't read it
       "sudo install -o root -g root -m 644 /tmp/99_pve.cfg /etc/cloud/cloud.cfg.d/99_pve.cfg",

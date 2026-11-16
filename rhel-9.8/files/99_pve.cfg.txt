@@ -1,1 +1,3 @@
 datasource_list: [ NoCloud, ConfigDrive ]
+# rhel's cloud.cfg sets ssh_pwauth: false, terraform logs in to clones with the cloud-init password
+ssh_pwauth: true
