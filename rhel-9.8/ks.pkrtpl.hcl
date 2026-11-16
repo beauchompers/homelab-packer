@@ -21,7 +21,8 @@ services --enabled=sshd,qemu-guest-agent
 ignoredisk --only-use=sda
 zerombr
 clearpart --all --initlabel --disklabel=gpt --drives=sda
-bootloader --boot-drive=sda
+# serial console for clones, kept for future kernels as it's part of the default kernel arguments
+bootloader --boot-drive=sda --append="console=tty0 console=ttyS0,115200"
 %{ if uefi ~}
 part /boot/efi --fstype=efi --size=600 --ondisk=sda
 %{ else ~}
@@ -39,9 +40,10 @@ reboot --eject
 qemu-guest-agent
 cloud-init
 cloud-utils-growpart
-# sgdisk and parted are used by terraform's resize script
+# used by the first-boot resize script (files/10-resize-root.sh)
 gdisk
 parted
+lvm2
 %{ if uefi ~}
 shim-x64
 grub2-efi-x64

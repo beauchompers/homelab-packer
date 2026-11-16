@@ -53,6 +53,8 @@ source "proxmox-iso" "rhel" {
   qemu_agent = true
   # rhel 9 needs x86-64-v2, the plugin's default kvm64 cpu (v1) kernel panics at init
   cpu_type   = "x86-64-v2-AES"
+  # serial console for clones (console=ttyS0 is on the kernel command line, see the kickstart)
+  serials    = ["socket"]
 
   # left unset for the bios build, so proxmox keeps its seabios / i440fx defaults
   bios    = var.uefi ? "ovmf" : null
@@ -119,6 +121,9 @@ build {
       "[ \"$(findmnt -n -o SOURCE /)\" = /dev/mapper/rhel--vg-rhel--lv ]",
       "command -v sgdisk parted > /dev/null",
       "systemctl is-enabled qemu-guest-agent",
+      "echo checking rhel-lv fills the disk",
+      "[ \"$(sudo vgs --noheadings -o vg_free_count rhel-vg | tr -d ' ')\" = 0 ]",
+      "grep -q 'console=ttyS0,115200' /proc/cmdline",
       ], var.uefi ? [
       "echo checking uefi / secure boot",
       "[ -d /sys/firmware/efi ]",
@@ -128,6 +133,11 @@ build {
       ] : [
       "[ ! -d /sys/firmware/efi ]",
     ])
+  }
+
+  provisioner "file" {
+    source      = "files/10-resize-root.sh"
+    destination = "/tmp/10-resize-root.sh"
   }
 
   # the org id and activation key go in a file so the leak check below can grep for them without putting
@@ -163,7 +173,13 @@ build {
       "sudo truncate -s 0 /etc/machine-id",
       "echo re-enabling cloud-init for clones",
       "sudo rm -f /etc/cloud/cloud-init.disabled",
-      "sudo cloud-init clean --logs"
+      "sudo cloud-init clean --logs --seed",
+      # after cloud-init clean, which deletes everything under /var/lib/cloud
+      "echo installing the first-boot resize script",
+      "sudo install -D -o root -g root -m 0755 /tmp/10-resize-root.sh /var/lib/cloud/scripts/per-instance/10-resize-root.sh",
+      "sudo restorecon -R /var/lib/cloud/scripts",
+      "rm -f /tmp/10-resize-root.sh",
+      "if [ -e /var/lib/dbus/machine-id ] && [ \"$(readlink /var/lib/dbus/machine-id)\" != /etc/machine-id ]; then echo '/var/lib/dbus/machine-id is not a symlink to /etc/machine-id'; exit 1; fi"
     ]
   }
 }
