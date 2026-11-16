@@ -57,3 +57,8 @@ variable "http_directory" {
   description = "the http directory to serve up for the cloud-init files"
   default     = "http"
 }
+variable "uefi" {
+  type        = bool
+  description = "build the UEFI (OVMF) + Secure Boot variant, named <proxmox_template_name>-uefi"
+  default     = false
+}
