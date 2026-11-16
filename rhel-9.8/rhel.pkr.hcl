@@ -1,7 +1,8 @@
 packer {
   required_plugins {
     proxmox = {
-      version = "~>1"
+      # 1.2.2 doesn't pass cpu_type to the vm (fixed in 1.2.3), and rhel needs it
+      version = ">= 1.2.3, < 2.0.0"
       source  = "github.com/hashicorp/proxmox"
     }
   }
@@ -50,6 +51,8 @@ source "proxmox-iso" "rhel" {
   scsi_controller = "virtio-scsi-pci"
   os         = "l26"
   qemu_agent = true
+  # rhel 9 needs x86-64-v2, the plugin's default kvm64 cpu (v1) kernel panics at init
+  cpu_type   = "x86-64-v2-AES"
 
   # left unset for the bios build, so proxmox keeps its seabios / i440fx defaults
   bios    = var.uefi ? "ovmf" : null
