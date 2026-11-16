@@ -64,6 +64,8 @@ source "proxmox-iso" "proxmox-ubuntu-20" {
   scsi_controller = "virtio-scsi-pci"
   os         = "l26"
   qemu_agent = true
+  # serial console for clones (console=ttyS0 is added to the kernel command line below)
+  serials    = ["socket"]
 
   # left unset for the bios build, so proxmox keeps its seabios / i440fx defaults
   bios    = var.uefi ? "ovmf" : null
@@ -146,9 +148,38 @@ build {
       "[ \"$(findmnt -n -o SOURCE /boot/efi)\" = /dev/sda1 ]",
       "[ \"$(findmnt -n -o SOURCE /boot)\" = /dev/sda2 ]",
       "sudo pvs --noheadings -o pv_name,vg_name | grep -Eq '/dev/sda3 +ubuntu-vg'",
-      "sudo lvs ubuntu-vg/ubuntu-lv > /dev/null",
-      "echo cleaning cloud-init state",
-      "sudo cloud-init clean --logs"
+      "sudo lvs ubuntu-vg/ubuntu-lv > /dev/null"
     ] : ["echo bios build, skipping uefi checks"]
+  }
+
+  provisioner "file" {
+    source      = "files/10-resize-root.sh"
+    destination = "/tmp/10-resize-root.sh"
+  }
+
+  # all builds, the last step before the template is converted: kernel command line, installer leftovers,
+  # fresh cloud-init state, and the first-boot resize script. The script is installed after
+  # cloud-init clean, which deletes everything under /var/lib/cloud
+  provisioner "shell" {
+    inline = [
+      "echo checking ubuntu-lv fills the disk",
+      "[ \"$(sudo vgs --noheadings -o vg_free_count ubuntu-vg | tr -d ' ')\" = 0 ]",
+      "echo removing autoinstall from the kernel command line, adding the serial console",
+      "sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"console=tty0 console=ttyS0,115200\"/' /etc/default/grub",
+      "grep -qx 'GRUB_CMDLINE_LINUX_DEFAULT=\"console=tty0 console=ttyS0,115200\"' /etc/default/grub",
+      "sudo update-grub",
+      "if sudo grep -q autoinstall /boot/grub/grub.cfg; then echo 'autoinstall still in grub.cfg'; exit 1; fi",
+      "echo removing installer logs",
+      "sudo rm -rf /var/log/installer",
+      "echo cleaning cloud-init state",
+      "sudo cloud-init clean --logs --seed",
+      "echo installing the first-boot resize script",
+      "sudo install -D -o root -g root -m 0755 /tmp/10-resize-root.sh /var/lib/cloud/scripts/per-instance/10-resize-root.sh",
+      "rm -f /tmp/10-resize-root.sh",
+      "echo removing host keys, zeroing the machine id",
+      "sudo rm -f /etc/ssh/ssh_host_*",
+      "sudo truncate -s 0 /etc/machine-id",
+      "[ \"$(readlink /var/lib/dbus/machine-id)\" = /etc/machine-id ]"
+    ]
   }
 }
