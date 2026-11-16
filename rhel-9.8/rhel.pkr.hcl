@@ -147,8 +147,10 @@ build {
       "sudo dnf clean all",
       "echo removing kickstart copies and install logs",
       "sudo rm -rf /root/anaconda-ks.cfg /root/original-ks.cfg /var/log/anaconda /var/log/rhsm/*",
-      "sudo journalctl --rotate && sudo journalctl --vacuum-time=1s",
-      "! sudo grep -rIlqFf /tmp/rhsm-patterns /root /etc /var/log",
+      "sudo journalctl --rotate",
+      "sudo journalctl --vacuum-time=1s",
+      # an explicit exit, as sh -e doesn't stop on a failing "! cmd". -l prints only file names, never the values
+      "if sudo grep -rIlFf /tmp/rhsm-patterns --exclude=rhsm-patterns /root /etc /var /tmp /home /boot /opt; then echo 'org id or activation key found in the files above'; exit 1; fi",
       "rm -f /tmp/rhsm-patterns",
       "echo moving files",
       # install + restorecon, as mv from /tmp keeps its tmp_t selinux label and cloud-init couldn't read it
